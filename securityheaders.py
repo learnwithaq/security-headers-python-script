@@ -1,13 +1,28 @@
+# Security Headers Checker
+# Copyright (C) 2025 Ahmed Qadir / learnwithaq.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
 import requests
 from termcolor import colored
+import re
 
 def check_security_headers(url):
-    """Check the security headers of a given URL."""
     try:
         response = requests.get(url, timeout=10)
         headers = response.headers
 
-        # List of critical security headers to check
         security_headers = {
             "Strict-Transport-Security": {
                 "description": "Enforces secure (HTTPS) connections to the server.",
@@ -51,23 +66,19 @@ def check_security_headers(url):
 
         for header, details in security_headers.items():
             if header in headers:
-                # Check if the header value matches the recommended configuration
-                if header == "Strict-Transport-Security" and "max-age=31536000" in headers[header]:
-                    print(colored(f"[✓] {header}: {headers[header]}", "green"))
-                elif header == "X-Content-Type-Options" and headers[header].lower() == "nosniff":
-                    print(colored(f"[✓] {header}: {headers[header]}", "green"))
-                elif header == "X-Frame-Options" and headers[header].upper() in ["DENY", "SAMEORIGIN"]:
-                    print(colored(f"[✓] {header}: {headers[header]}", "green"))
-                elif header == "X-XSS-Protection" and headers[header] == "1; mode=block":
-                    print(colored(f"[✓] {header}: {headers[header]}", "green"))
-                elif header == "Content-Security-Policy" and headers[header]:
-                    print(colored(f"[✓] {header}: {headers[header]}", "green"))
-                elif header == "Referrer-Policy" and headers[header]:
-                    print(colored(f"[✓] {header}: {headers[header]}", "green"))
-                elif header == "Permissions-Policy" and headers[header]:
-                    print(colored(f"[✓] {header}: {headers[header]}", "green"))
+                value = headers[header]
+                if header == "Strict-Transport-Security" and "max-age=31536000" in value:
+                    print(colored(f"[✓] {header}: {value}", "green"))
+                elif header == "X-Content-Type-Options" and value.lower() == "nosniff":
+                    print(colored(f"[✓] {header}: {value}", "green"))
+                elif header == "X-Frame-Options" and value.upper() in ["DENY", "SAMEORIGIN"]:
+                    print(colored(f"[✓] {header}: {value}", "green"))
+                elif header == "X-XSS-Protection" and value == "1; mode=block":
+                    print(colored(f"[✓] {header}: {value}", "green"))
+                elif header in ["Content-Security-Policy", "Referrer-Policy", "Permissions-Policy"] and value:
+                    print(colored(f"[✓] {header}: {value}", "green"))
                 else:
-                    print(colored(f"[!] {header}: {headers[header]} (Weak configuration)", "yellow"))
+                    print(colored(f"[!] {header}: {value} (Weak configuration)", "yellow"))
                     print(colored(f"    Recommended: {details['recommended']}", "yellow"))
             else:
                 print(colored(f"[✗] {header}: Missing", "red"))
@@ -77,10 +88,40 @@ def check_security_headers(url):
     except requests.exceptions.RequestException as e:
         print(colored(f"[-] Failed to fetch headers: {e}", "red"))
 
+def is_valid_url(url):
+    if not url.startswith("https://"):
+        print(colored("[-] Error: URL must start with 'https://'", "red"))
+        return False
+    if not re.search(r"\.[a-z]{2,}$", url):
+        print(colored("[-] Error: URL must contain a valid top-level domain (e.g., .com, .org)", "red"))
+        return False
+    return True
+
 def main():
-    print(colored("=== Security Header Checker by learnwithaq.com ===", "cyan", attrs=["bold"]))
-    url = input("Enter the URL to check (e.g., https://example.com): ")
-    check_security_headers(url)
+    print(colored(""" 
+  #####                                               #     #                                           
+ #     # ######  ####  #    # #####  # ##### #   #    #     # ######   ##   #####  ###### #####   ####  
+ #       #      #    # #    # #    # #   #    # #     #     # #       #  #  #    # #      #    # #      
+  #####  #####  #      #    # #    # #   #     #      ####### #####  #    # #    # #####  #    #  ####  
+       # #      #      #    # #####  #   #     #      #     # #      ###### #    # #      #####       # 
+ #     # #      #    # #    # #   #  #   #     #      #     # #      #    # #    # #      #   #  #    # 
+  #####  ######  ####   ####  #    # #   #     #      #     # ###### #    # #####  ###### #    #  ####  
+                                                                                                        
+""", "red"))
+    print(colored("=== Security Header Checker by learnwithaq.com ===\n", "cyan", attrs=["bold"]))
+
+    while True:
+        url = input(colored("Enter a URL (e.g., https://example.com) or type 'exit' to quit: ", "yellow"))
+
+        if url.lower() == 'exit':
+            print(colored("\n[+] Exiting... Stay Secure!\n", "green"))
+            break
+
+        if not is_valid_url(url):
+            continue
+
+        check_security_headers(url)
+        print(colored("\n-----------------------------------------------\n", "cyan"))
 
 if __name__ == "__main__":
     main()
